@@ -3,9 +3,13 @@ import datetime
 import plotly
 import plotly.plotly as py
 import plotly.graph_objs as go
+import pytz
+
 plotly.tools.set_credentials_file(username='niksavilov', api_key='Qxc4TAOOwk8CU1os7wNx')
 global access_token
-access_token = 'ffb882a0affcbaadecfc56f7cbeeac328fded8f4c01f59d2981c46643fa9e1151ed2f865c11fb1fe64566'
+global tz
+tz = ''
+access_token = '7c59d957b0ca23c49d84fe5eb59c75c530421da7c1724bedda8608da79e6fb80100926353021bd0517991'
 def get(url, params={}, timeout=5, max_retries=5, backoff_factor=1.3):
     """ Выполнить GET-запрос
 
@@ -43,7 +47,7 @@ def get_friends(user_id, fields):
     assert isinstance(fields, str), "fields must be string"
     assert user_id > 0, "user_id must be positive integer"
     domain = "https://api.vk.com/method"
-    access_token = 'ffb882a0affcbaadecfc56f7cbeeac328fded8f4c01f59d2981c46643fa9e1151ed2f865c11fb1fe64566'
+    # access_token = 'ffb882a0affcbaadecfc56f7cbeeac328fded8f4c01f59d2981c46643fa9e1151ed2f865c11fb1fe64566'
     # user_id = 141839173
 
     query_params = {
@@ -73,7 +77,6 @@ def age_predict(user_id):
             summa += age
             count += 1
     return round(int(summa.days)/(365*count))
-
 def messages_get_history(user_id, offset=0, count=200):
     assert isinstance(user_id, int), "user_id must be positive integer"
     assert user_id > 0, "user_id must be positive integer"
@@ -98,7 +101,18 @@ def messages_get_history(user_id, offset=0, count=200):
     except:
         print("Invalid user id or access_token")
         exit(1)
-
+def messages_aggregator(user_id):
+    offset = 0
+    messages = []
+    while True:
+        response = messages_get_history(user_id = user_id, offset = offset)
+        if response['items']:
+            for g in response['items']:
+                messages.append(g)
+        else:
+            return messages
+        offset += 200
+        time.sleep(0.4)
 def count_dates_from_messages(messages):
     dates_arr = []
     for k in messages:
@@ -108,40 +122,25 @@ def count_dates_from_messages(messages):
     frequency = []
     for j in dates_list:
         frequency.append({'date' : j, 'messages' : dates_arr.count(j)})
+        # print({'date' : j, 'messages' : dates_arr.count(j)})
     frequency_sorted = sorted(frequency, key = lambda x: x['date'])
     return frequency_sorted
-
-def messages_aggregator(user_id):
-    offset = 0
-    messages = []
-    while True:
-        response = messages_get_history(user_id = user_id, offset = offset)
-        print(response.get('count'))
-        if response['items']:
-            for g in response['items']:
-                messages.append(g)
-        else:
-            return messages
-        offset += 200
-        time.sleep(0.4)
-
 def plot_maker(dates_list):
     x = []
     y = []
     for j in dates_list:
-        x.append(datetime.datetime.strptime(j.get('date'),"%Y.%m.%d"))
+        x.append(datetime.datetime.strptime(j.get('date'),"%Y.%m.%d").replace(tzinfo= pytz.utc))
         y.append(j.get('messages'))
     data = [go.Scatter(x = x, y = y)]
     py.plot(data)
     pass
-#print(messages_get_history(user_id = 175747053, offset = 13550))
-#print(messages_get_history(user_id = 175747053, offset = 200))
+    
+def get_network(users_ids, as_edgelist=True):
+    """ Building a friend graph for an arbitrary list of users """
+    # PUT YOUR CODE HERE
+    pass
 
-plot_maker(count_dates_from_messages(messages_aggregator(162674267)))
+# Example requests:
+# plot_maker(count_dates_from_messages(messages_aggregator(162674267)))
 # print('Possible age is', age_predict(141839173))
-#print(count_dates_from_messages(messages_get_history(user_id = 162674267, offset = 0)),'\n')
-#time.sleep(1)
-#print(count_dates_from_messages(messages_get_history(user_id = 162674267, offset = 200)),'\n')
-#time.sleep(1)
-#print(count_dates_from_messages(messages_get_history(user_id = 162674267, offset = 400)),'\n')
-# print(dates_aggregator(175747053))
+# 
